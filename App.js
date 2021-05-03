@@ -7,8 +7,7 @@
  */
 
 import React from 'react';
-import type {Node} from 'react';
-import {TextInput, Button, View, TouchableOpacity, Text} from 'react-native';
+import {TextInput, Linking, View, TouchableOpacity, Text} from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 
@@ -16,10 +15,26 @@ import OneSignal from 'react-native-onesignal';
 
 import {Notifications} from 'react-native-notifications';
 
-const App: () => Node = () => {
+import {NavigationContainer} from '@react-navigation/native';
+import {createStackNavigator} from '@react-navigation/stack';
+
+const Event = ({route, navigation}) => {
+  return (
+    <View
+      flex={1}
+      style={{
+        backgroundColor: 'salmon',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+      <Text>Id của Event: {route?.params?.id}</Text>
+    </View>
+  );
+};
+
+const Home = ({navigation}) => {
   const [externalId, setExternalId] = React.useState('');
   const [text, setText] = React.useState('');
-
   React.useEffect(() => {
     OneSignal.setAppId('16394537-23d0-4405-827a-ae3a3e6bd6d4');
 
@@ -34,24 +49,19 @@ const App: () => Node = () => {
       notifReceivedEvent.complete(null);
     });
     OneSignal.setNotificationOpenedHandler(openedEvent => {
-      console.log('OneSignal: notification opened:', openedEvent);
+      const notification = openedEvent?.notification;
+      const ref_type = notification?.additionalData?.ref_type;
+      if (ref_type === 'Event') {
+        navigation.navigate({
+          name: 'Event',
+          params: {id: notification?.additionalData?.ref_id},
+        });
+      }
     });
-    OneSignal.setInAppMessageClickHandler(event => {
-      console.log('OneSignal IAM clicked:', event);
+
+    Linking.getInitialURL().then(url => {
+      console.log('Linking url', url);
     });
-    OneSignal.addEmailSubscriptionObserver(event => {
-      console.log('OneSignal: email subscription changed: ', event);
-    });
-    OneSignal.addSubscriptionObserver(event => {
-      console.log('OneSignal: subscription changed:', event);
-    });
-    OneSignal.addPermissionObserver(event => {
-      console.log('OneSignal: permission changed:', event);
-    });
-    OneSignal.promptForPushNotificationsWithUserResponse(aa => {
-      console.log('OneSignal promptForPushNotificationsWithUserResponse', aa);
-    });
-    OneSignal.getDeviceState().then(res => console.log('DeviceState', res));
   }, []);
 
   React.useEffect(() => {
@@ -120,6 +130,30 @@ const App: () => Node = () => {
         </TouchableOpacity>
       </View>
     </View>
+  );
+};
+
+const Stack = createStackNavigator();
+
+const config = {
+  screens: {
+    Event: 'Event',
+    Home: 'Home',
+  },
+};
+
+const linking = {
+  prefixes: ['notificationexample://'],
+  config,
+};
+const App = () => {
+  return (
+    <NavigationContainer linking={linking}>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Event" component={Event} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
